@@ -1,0 +1,5 @@
+taskmgr
+taskmgr-linux-*
+*.o
+SHA256SUMS
+.DS_Store

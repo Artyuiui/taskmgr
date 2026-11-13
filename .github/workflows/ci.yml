@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: build (${{ matrix.cc }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cc: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ncurses headers
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libncursesw5-dev pkg-config clang
+      - name: Build with -Werror
+        run: make CC=${{ matrix.cc }} CFLAGS="-O2 -Wall -Wextra -Werror -std=c11"
+      - name: Smoke test
+        run: |
+          ./taskmgr -v
+          # run headless for one second against the real /proc of the runner
+          TERM=xterm script -qec "timeout 2 ./taskmgr -d 500 || [ \$? = 124 ]" /dev/null
+
+  installer-shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y -qq shellcheck && shellcheck -s sh install.sh

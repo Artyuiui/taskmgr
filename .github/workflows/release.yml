@@ -67,7 +67,7 @@ jobs:
           - { image: "ubuntu:22.04", prep: "apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null" }
           - { image: "debian:12",    prep: "apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null" }
           - { image: "fedora:40",    prep: "true" }
-          - { image: "archlinux",    prep: "pacman -Sy --noconfirm --needed curl >/dev/null" }
+          - { image: "archlinux",    prep: "true" }   # curl ships in the base image; partial -Sy upgrades break pacman
           - { image: "alpine:3.20",  prep: "apk add --no-cache curl >/dev/null" }   # musl -> source build path
     steps:
       - name: Run the one-liner

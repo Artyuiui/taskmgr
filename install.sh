@@ -88,7 +88,7 @@ try_prebuilt() {
     if have sha256sum; then actual=$(sha256sum "$TMP/$ASSET" | awk '{print $1}')
     elif have shasum; then actual=$(shasum -a 256 "$TMP/$ASSET" | awk '{print $1}')
     else warn "no sha256sum tool, skipping verification"; actual="$expected"; fi
-    [ -n "$expected" ] && [ "$expected" = "$actual" ] || die "checksum mismatch for $ASSET"
+    if [ -z "$expected" ] || [ "$expected" != "$actual" ]; then die "checksum mismatch for $ASSET"; fi
     say "checksum OK"
 
     chmod +x "$TMP/$ASSET"

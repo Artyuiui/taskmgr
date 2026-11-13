@@ -15,6 +15,7 @@ jobs:
     name: build (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - { runner: ubuntu-24.04,     arch: x86_64 }
@@ -27,7 +28,7 @@ jobs:
       - name: Build in Debian 11 container
         run: |
           docker run --rm -e GITHUB_REF_NAME -v "$PWD":/src -w /src debian:11 sh -ec '
-            printf "deb http://archive.debian.org/debian bullseye main\n" > /etc/apt/sources.list
+            printf "deb http://archive.debian.org/debian bullseye main\ndeb http://archive.debian.org/debian-security bullseye-security main\n" > /etc/apt/sources.list
             apt-get -o Acquire::Check-Valid-Until=false update -qq
             apt-get install -y -qq --no-install-recommends gcc make libc6-dev libncursesw5-dev pkg-config >/dev/null
             make release VERSION="$GITHUB_REF_NAME"

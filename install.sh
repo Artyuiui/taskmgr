@@ -114,8 +114,10 @@ install_deps() {
     else warn "unknown package manager: make sure a C compiler, make and the ncurses(w) headers are installed"; fi
 }
 
+have_build_tools() { { have cc || have gcc || have clang; } && have make && have pkg-config; }
+
 build_from_source() {
-    if ! have cc && ! have gcc && ! have clang || ! have make || ! have pkg-config; then
+    if ! have_build_tools; then
         say "installing build dependencies (compiler, make, ncurses headers)"
         install_deps
     elif ! pkg-config --exists ncursesw 2>/dev/null && ! pkg-config --exists ncurses 2>/dev/null && [ ! -f /usr/include/ncurses.h ]; then

@@ -1,5 +1,6 @@
 CC      ?= cc
-CFLAGS  ?= -O2 -Wall -Wextra -std=c11
+# -Wno-format-truncation: every snprintf here truncates on purpose (fixed-width UI fields).
+CFLAGS  ?= -O2 -Wall -Wextra -Wno-format-truncation -std=c11
 PREFIX  ?= /usr/local
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
@@ -13,12 +14,12 @@ taskmgr: taskmgr.c
 	$(CC) $(CFLAGS) -DTASKMGR_VERSION='"$(VERSION)"' $(NCURSES_CFLAGS) -o $@ $< $(NCURSES_LIBS)
 
 # Even smaller binary (strips symbols, drops unused sections).
-small: CFLAGS = -Os -Wall -std=c11 -ffunction-sections -fdata-sections
+small: CFLAGS = -Os -Wall -Wno-format-truncation -std=c11 -ffunction-sections -fdata-sections
 small: taskmgr
 	strip $< 2>/dev/null || true
 
 # Release build used by CI: optimised, stripped, dynamic ncurses (so NVML dlopen keeps working).
-release: CFLAGS = -O2 -Wall -Wextra -std=c11 -ffunction-sections -fdata-sections -Wl,--gc-sections
+release: CFLAGS = -O2 -Wall -Wextra -Wno-format-truncation -std=c11 -ffunction-sections -fdata-sections -Wl,--gc-sections
 release: taskmgr
 	strip taskmgr
 

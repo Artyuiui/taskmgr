@@ -1,7 +1,8 @@
 name: Release
 
-# Pushing a tag like v0.1.0 builds x86_64 + aarch64 binaries and attaches them
-# (plus SHA256SUMS) to a GitHub Release. install.sh downloads from here.
+# Pushing a tag like v0.1.0 builds x86_64 + aarch64 binaries, attaches them
+# (plus SHA256SUMS) to a GitHub Release, then runs install.sh on several
+# distros to prove the one-liner works. install.sh downloads from here.
 on:
   push:
     tags: ['v*']
@@ -20,18 +21,18 @@ jobs:
           - { runner: ubuntu-24.04-arm, arch: aarch64 }
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # tags, for `git describe`
       # Build inside Debian 11 (glibc 2.31, ncurses 6.2) so the binary runs on
       # Ubuntu 20.04+, Debian 11+, RHEL 9+, Fedora, Arch ... anything newer.
+      # Bullseye is end-of-life, so its packages live on archive.debian.org.
       - name: Build in Debian 11 container
         run: |
-          docker run --rm -v "$PWD":/src -w /src debian:11 sh -ec '
-            apt-get update -qq
-            apt-get install -y -qq build-essential libncursesw5-dev pkg-config git >/dev/null
-            git config --global --add safe.directory /src
-            make release VERSION="${GITHUB_REF_NAME}"
+          docker run --rm -e GITHUB_REF_NAME -v "$PWD":/src -w /src debian:11 sh -ec '
+            printf "deb http://archive.debian.org/debian bullseye main\n" > /etc/apt/sources.list
+            apt-get -o Acquire::Check-Valid-Until=false update -qq
+            apt-get install -y -qq --no-install-recommends gcc make libc6-dev libncursesw5-dev pkg-config >/dev/null
+            make release VERSION="$GITHUB_REF_NAME"
             ./taskmgr -v
+            ldd ./taskmgr
           '
           mv taskmgr taskmgr-linux-${{ matrix.arch }}
       - uses: actions/upload-artifact@v4
@@ -53,3 +54,25 @@ jobs:
         with:
           files: dist/*
           generate_release_notes: true
+
+  verify-installer:
+    name: install.sh on ${{ matrix.image }}
+    needs: release
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: "ubuntu:22.04", prep: "apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null" }
+          - { image: "debian:12",    prep: "apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null" }
+          - { image: "fedora:40",    prep: "true" }
+          - { image: "archlinux",    prep: "pacman -Sy --noconfirm --needed curl >/dev/null" }
+          - { image: "alpine:3.20",  prep: "apk add --no-cache curl >/dev/null" }   # musl -> source build path
+    steps:
+      - name: Run the one-liner
+        run: |
+          docker run --rm -e TASKMGR_VERSION="$GITHUB_REF_NAME" ${{ matrix.image }} sh -ec '
+            ${{ matrix.prep }}
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | sh
+            taskmgr -v
+          '

@@ -199,8 +199,8 @@ static int read_proc(pid_t pid, proc_t *p) {
        cmajflt utime stime cutime cstime priority nice num_threads itrealvalue
        starttime vsize rss */
     if (sscanf(r + 2,
-               "%c %d %*d %*d %*d %*d %*u %*lu %*lu %*lu %*lu %llu %llu "
-               "%*ld %*ld %*ld %*ld %d %*ld %*llu %*llu %ld",
+               "%c %d %*d %*d %*d %*d %*u %*u %*u %*u %*u %llu %llu "
+               "%*d %*d %*d %*d %d %*d %*u %*u %ld",
                &p->state, &p->ppid, &ut, &st, &threads, &rss) != 6)
         return -1;
     p->pid = pid;

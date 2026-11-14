@@ -70,11 +70,14 @@ jobs:
           - { image: "archlinux",    prep: "true" , expect: "prebuilt" }   # curl ships in the base image; partial -Sy upgrades break pacman
           - { image: "alpine:3.20",  prep: "apk add --no-cache curl >/dev/null" , expect: "source" }   # musl -> source build path
     steps:
-      - name: Run the one-liner
+      - uses: actions/checkout@v4
+      # The script is mounted from this checkout (raw.githubusercontent.com caches
+      # for ~5 min, which would test a stale copy right after a push).
+      - name: Run the installer
         run: |
-          docker run --rm -e TASKMGR_VERSION="$GITHUB_REF_NAME" ${{ matrix.image }} sh -ec '
+          docker run --rm -v "$PWD/install.sh":/install.sh:ro -e TASKMGR_VERSION="$GITHUB_REF_NAME" ${{ matrix.image }} sh -ec '
             ${{ matrix.prep }}
-            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | sh 2>&1 | tee /tmp/install.log
+            sh /install.sh 2>&1 | tee /tmp/install.log
             taskmgr -v
             case "${{ matrix.expect }}" in
               prebuilt) grep -q "checksum OK" /tmp/install.log || { echo "expected the prebuilt binary path"; exit 1; } ;;

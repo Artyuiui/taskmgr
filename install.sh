@@ -73,7 +73,11 @@ try_prebuilt() {
     if ldd --version 2>&1 | grep -qi musl; then
         say "musl libc detected, building from source"; return 1
     fi
-    if ! ls /lib/ld-linux* /lib64/ld-linux* /usr/lib/ld-linux* /usr/lib64/ld-linux* /lib/*/ld-linux* /usr/lib/*/ld-linux* >/dev/null 2>&1; then
+    found=""
+    for f in /lib/ld-linux* /lib64/ld-linux* /usr/lib/ld-linux* /usr/lib64/ld-linux* /lib/*/ld-linux* /usr/lib/*/ld-linux*; do
+        [ -e "$f" ] && found=1 && break
+    done
+    if [ -z "$found" ]; then
         say "no glibc dynamic loader found, building from source"; return 1
     fi
 

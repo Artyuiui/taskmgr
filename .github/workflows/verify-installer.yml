@@ -18,16 +18,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { image: "ubuntu:22.04", prep: "apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null" }
-          - { image: "debian:12",    prep: "apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null" }
-          - { image: "fedora:40",    prep: "true" }
-          - { image: "archlinux",    prep: "true" }
-          - { image: "alpine:3.20",  prep: "apk add --no-cache curl >/dev/null" }
+          - { image: "ubuntu:22.04", prep: "apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null" , expect: "prebuilt" }
+          - { image: "debian:12",    prep: "apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null" , expect: "prebuilt" }
+          - { image: "fedora:40",    prep: "true" , expect: "prebuilt" }
+          - { image: "archlinux",    prep: "true" , expect: "prebuilt" }
+          - { image: "alpine:3.20",  prep: "apk add --no-cache curl >/dev/null" , expect: "source" }
     steps:
       - name: Run the one-liner
         run: |
           docker run --rm -e TASKMGR_VERSION="${{ inputs.version }}" ${{ matrix.image }} sh -ec '
             ${{ matrix.prep }}
-            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | sh
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | sh 2>&1 | tee /tmp/install.log
             taskmgr -v
+            case "${{ matrix.expect }}" in
+              prebuilt) grep -q "checksum OK" /tmp/install.log || { echo "expected the prebuilt binary path"; exit 1; } ;;
+              source)   grep -q "building"    /tmp/install.log || { echo "expected the source-build path";   exit 1; } ;;
+            esac
           '

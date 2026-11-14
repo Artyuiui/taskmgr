@@ -70,8 +70,11 @@ try_prebuilt() {
         *) say "no prebuilt binary for $ARCH, building from source"; return 1 ;;
     esac
     # prebuilt binaries are glibc-linked; musl systems (Alpine, Void-musl) build from source
-    if ! ls /lib/ld-linux* /lib64/ld-linux* /lib/*/ld-linux* >/dev/null 2>&1; then
-        say "no glibc dynamic loader found (musl?), building from source"; return 1
+    if ldd --version 2>&1 | grep -qi musl; then
+        say "musl libc detected, building from source"; return 1
+    fi
+    if ! ls /lib/ld-linux* /lib64/ld-linux* /usr/lib/ld-linux* /usr/lib64/ld-linux* /lib/*/ld-linux* /usr/lib/*/ld-linux* >/dev/null 2>&1; then
+        say "no glibc dynamic loader found, building from source"; return 1
     fi
 
     if [ -n "${TASKMGR_VERSION:-}" ]; then
@@ -106,7 +109,10 @@ install_deps() {
     if have apt-get; then $PM_SUDO apt-get update -qq && $PM_SUDO apt-get install -y -qq build-essential libncursesw5-dev pkg-config
     elif have dnf; then $PM_SUDO dnf install -y gcc make ncurses-devel pkgconf-pkg-config
     elif have yum; then $PM_SUDO yum install -y gcc make ncurses-devel pkgconfig
-    elif have pacman; then $PM_SUDO pacman -S --needed --noconfirm gcc make ncurses pkgconf
+    elif have pacman; then
+        # -S first (no partial upgrade); on a never-synced database fall back to a full -Syu
+        $PM_SUDO pacman -S --needed --noconfirm gcc make ncurses pkgconf 2>/dev/null ||
+        $PM_SUDO pacman -Syu --needed --noconfirm gcc make ncurses pkgconf
     elif have apk; then $PM_SUDO apk add --no-cache build-base ncurses-dev pkgconf
     elif have zypper; then $PM_SUDO zypper --non-interactive install gcc make ncurses-devel pkg-config
     elif have xbps-install; then $PM_SUDO xbps-install -Sy gcc make ncurses-devel pkg-config

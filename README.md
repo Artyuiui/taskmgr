@@ -170,7 +170,7 @@ taskmgr switches to ASCII automatically when the locale is not UTF-8. Set `TASKM
 - Linux only. On Apple Silicon this means Linux (e.g. Asahi), not macOS.
 - Intel integrated GPUs do not expose utilization in sysfs, so only the name and temperature are shown.
 - AMD / Intel GPU marketing names come from `pci.ids` (package `hwdata` or `pciutils`); without it you get `AMD GPU (amdgpu)`.
-- The prebuilt release binaries are glibc-linked and need `libncursesw.so.6`; the installer falls back to a source build everywhere else.
+- The prebuilt release binaries are glibc-linked and need `libncursesw.so.6`; the installer installs that package when it is missing and falls back to a source build on musl systems or very old glibc.
 
 ## License
 

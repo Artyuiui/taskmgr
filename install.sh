@@ -99,12 +99,27 @@ try_prebuilt() {
     say "checksum OK"
 
     chmod +x "$TMP/$ASSET"
-    # make sure the shared libs it needs (libncursesw.so.6 / libtinfo.so.6) exist here
+    # the binary needs libncursesw.so.6; minimal images often lack it, so install the runtime and retry
     if ! "$TMP/$ASSET" -v >/dev/null 2>&1; then
-        warn "prebuilt binary does not run on this system (missing libncursesw6 or old glibc), building from source"
+        say "installing the ncurses runtime library"
+        install_ncurses_runtime || true
+    fi
+    if ! "$TMP/$ASSET" -v >/dev/null 2>&1; then
+        warn "prebuilt binary does not run on this system (old glibc?), building from source"
         return 1
     fi
     install_bin "$TMP/$ASSET"
+}
+
+install_ncurses_runtime() {
+    PM_SUDO=""; [ "$(id -u)" = 0 ] || PM_SUDO="sudo"
+    if have apt-get; then $PM_SUDO apt-get update -qq && $PM_SUDO apt-get install -y -qq libncursesw6
+    elif have dnf; then $PM_SUDO dnf install -y ncurses-libs
+    elif have yum; then $PM_SUDO yum install -y ncurses-libs
+    elif have pacman; then $PM_SUDO pacman -S --needed --noconfirm ncurses 2>/dev/null || $PM_SUDO pacman -Syu --needed --noconfirm ncurses
+    elif have zypper; then $PM_SUDO zypper --non-interactive install libncurses6
+    elif have xbps-install; then $PM_SUDO xbps-install -Sy ncurses-libs
+    else return 1; fi
 }
 
 # ---------------------------------------------------------------- from source
